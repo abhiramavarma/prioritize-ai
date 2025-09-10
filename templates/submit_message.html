@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Message - PrioritizeAI{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <i class="fas fa-paper-plane"></i> Submit New Message
+                </h2>
+                
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="content" class="form-label">
+                            Message Content
+                        </label>
+                        <textarea 
+                            class="form-control" 
+                            id="content" 
+                            name="content" 
+                            rows="6" 
+                            placeholder="Describe your issue, request, or feedback..."
+                            required
+                        ></textarea>
+                        <div class="form-text">
+                            The system will automatically prioritize your message based on its content.
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('user_dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Submit Message
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-info-circle"></i> How Priority Works
+                </h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <span class="badge bg-danger fs-6 mb-2">High Priority</span>
+                            <p class="small">Critical issues requiring immediate attention</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <span class="badge bg-warning fs-6 mb-2">Medium Priority</span>
+                            <p class="small">Important issues that need timely response</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <span class="badge bg-success fs-6 mb-2">Low Priority</span>
+                            <p class="small">General requests and suggestions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

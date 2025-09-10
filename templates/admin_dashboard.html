@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - PrioritizeAI{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h2>
+        <p class="text-muted">Messages are automatically sorted by priority. High priority messages appear first.</p>
+
+        {% if messages %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Priority</th>
+                            <th>User</th>
+                            <th>Message</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for message in messages %}
+                        <tr class="priority-{{ message.final_priority or message.predicted_priority }}">
+                            <td>
+                                <span class="badge bg-{{ 'danger' if (message.final_priority or message.predicted_priority) == 'high' else 'warning' if (message.final_priority or message.predicted_priority) == 'medium' else 'success' }}">
+                                    {% if message.final_priority and message.final_priority != message.predicted_priority %}
+                                        <i class="fas fa-user-cog" title="Admin Override"></i>
+                                    {% else %}
+                                        <i class="fas fa-robot" title="AI Predicted"></i>
+                                    {% endif %}
+                                    {{ (message.final_priority or message.predicted_priority).title() }}
+                                </span>
+                            </td>
+                            <td>{{ message.user_email }}</td>
+                            <td>
+                                <div style="max-width: 300px;">
+                                    {{ message.content[:100] }}{% if message.content|length > 100 %}...{% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'secondary' if message.status == 'pending' else 'primary' if message.status == 'in-progress' else 'success' }}">
+                                    {{ message.status.replace('-', ' ').title() }}
+                                </span>
+                            </td>
+                            <td>
+                                <small>{{ message.timestamp }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#updateModal{{ message.id }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#viewModal{{ message.id }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Update Modal -->
+                        <div class="modal fade" id="updateModal{{ message.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Update Message</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <form method="POST" action="{{ url_for('update_message', message_id=message.id) }}">
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <label class="form-label">Status</label>
+                                                <select class="form-select" name="status">
+                                                    <option value="pending" {% if message.status == 'pending' %}selected{% endif %}>Pending</option>
+                                                    <option value="in-progress" {% if message.status == 'in-progress' %}selected{% endif %}>In Progress</option>
+                                                    <option value="resolved" {% if message.status == 'resolved' %}selected{% endif %}>Resolved</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Priority Override</label>
+                                                <select class="form-select" name="priority">
+                                                    <option value="">Keep AI Prediction ({{ message.predicted_priority.title() }})</option>
+                                                    <option value="low" {% if message.final_priority == 'low' %}selected{% endif %}>Low</option>
+                                                    <option value="medium" {% if message.final_priority == 'medium' %}selected{% endif %}>Medium</option>
+                                                    <option value="high" {% if message.final_priority == 'high' %}selected{% endif %}>High</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary">Update</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- View Modal -->
+                        <div class="modal fade" id="viewModal{{ message.id }}" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Message Details</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="row mb-3">
+                                            <div class="col-sm-3"><strong>From:</strong></div>
+                                            <div class="col-sm-9">{{ message.user_email }}</div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-sm-3"><strong>Submitted:</strong></div>
+                                            <div class="col-sm-9">{{ message.timestamp }}</div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-sm-3"><strong>AI Priority:</strong></div>
+                                            <div class="col-sm-9">
+                                                <span class="badge bg-{{ 'danger' if message.predicted_priority == 'high' else 'warning' if message.predicted_priority == 'medium' else 'success' }}">
+                                                    {{ message.predicted_priority.title() }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {% if message.final_priority %}
+                                        <div class="row mb-3">
+                                            <div class="col-sm-3"><strong>Final Priority:</strong></div>
+                                            <div class="col-sm-9">
+                                                <span class="badge bg-{{ 'danger' if message.final_priority == 'high' else 'warning' if message.final_priority == 'medium' else 'success' }}">
+                                                    {{ message.final_priority.title() }} (Admin Override)
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        <div class="row mb-3">
+                                            <div class="col-sm-3"><strong>Status:</strong></div>
+                                            <div class="col-sm-9">
+                                                <span class="badge bg-{{ 'secondary' if message.status == 'pending' else 'primary' if message.status == 'in-progress' else 'success' }}">
+                                                    {{ message.status.replace('-', ' ').title() }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-3"><strong>Message:</strong></div>
+                                            <div class="col-sm-9">
+                                                <p class="bg-light p-3 rounded">{{ message.content }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <h4>No messages yet</h4>
+                <p class="text-muted">Messages will appear here when users submit them.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
