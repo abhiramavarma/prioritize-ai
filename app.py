@@ -48,15 +48,12 @@ def init_db():
         FOREIGN KEY (user_id) REFERENCES users (id)
     )''')
     
-    # Create default admin user if specified via environment
-    admin_email = os.environ.get('ADMIN_EMAIL')
-    admin_password = os.environ.get('ADMIN_PASSWORD')
-    if admin_email and admin_password:
-        c.execute("SELECT id FROM users WHERE email = ?", (admin_email,))
-        if not c.fetchone():
-            admin_hash = generate_password_hash(admin_password)
-            c.execute("INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)",
-                     (admin_email, admin_hash, 'admin'))
+    # Create default admin user
+    c.execute("SELECT id FROM users WHERE email = 'admin@example.com'")
+    if not c.fetchone():
+        admin_hash = generate_password_hash('admin')
+        c.execute("INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)",
+                 ('admin@example.com', admin_hash, 'admin'))
     
     conn.commit()
     conn.close()
