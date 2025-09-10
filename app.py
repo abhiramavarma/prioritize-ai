@@ -1,15 +1,23 @@
 import os
 import sqlite3
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_wtf.csrf import CSRFProtect
 import joblib
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 import re
 
 app = Flask(__name__)
+
+# Security configuration
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+csrf = CSRFProtect(app)
+
+# Enforce SECRET_KEY in production (when not in debug or testing mode)
+if not (app.debug or app.testing) and app.secret_key == 'dev-secret-key-change-in-production':
+    raise RuntimeError("SECRET_KEY environment variable must be set in production!")
 
 # Valid values for validation
 VALID_STATUSES = {'pending', 'in-progress', 'resolved'}
@@ -71,6 +79,32 @@ def preprocess_text(text):
     text = re.sub(r'[^a-zA-Z\s]', '', text)
     text = re.sub(r'\s+', ' ', text).strip()
     return text
+
+# CSV sanitization to prevent formula injection
+def sanitize_csv_field(field):
+    """Sanitize CSV fields to prevent formula injection attacks"""
+    if field is None:
+        return ''
+    
+    field_str = str(field)
+    # Check if field starts with dangerous characters and prefix with single quote
+    if field_str and field_str[0] in ('=', '+', '-', '@'):
+        return "'" + field_str
+    return field_str
+
+# Convert SQLite timestamp to ISO format
+def convert_to_iso_timestamp(sqlite_timestamp):
+    """Convert SQLite timestamp to ISO format for better browser compatibility"""
+    if not sqlite_timestamp:
+        return None
+    
+    try:
+        # Parse SQLite timestamp format and convert to ISO
+        dt = datetime.fromisoformat(sqlite_timestamp.replace(' ', 'T'))
+        return dt.isoformat()
+    except (ValueError, AttributeError):
+        # Fallback to original if parsing fails
+        return sqlite_timestamp
 
 # Predict priority using ML model
 def predict_priority(content):
@@ -245,6 +279,82 @@ def admin_dashboard():
     conn.close()
     
     return render_template('admin_dashboard.html', messages=messages)
+
+@app.route('/api/admin/messages')
+@admin_required
+def admin_messages_api():
+    """API endpoint for dashboard auto-refresh"""
+    conn = get_db_connection()
+    
+    # Priority order for sorting
+    priority_order = {'high': 3, 'medium': 2, 'low': 1}
+    
+    messages = conn.execute('''
+        SELECT m.*, u.email as user_email 
+        FROM messages m
+        JOIN users u ON m.user_id = u.id
+        ORDER BY m.status ASC, m.timestamp DESC
+    ''').fetchall()
+    
+    # Convert to list of dicts and sort by priority
+    messages_list = []
+    for msg in messages:
+        msg_dict = dict(msg)
+        priority = msg_dict['final_priority'] or msg_dict['predicted_priority']
+        msg_dict['effective_priority'] = priority
+        msg_dict['priority_order'] = priority_order.get(priority, 2)
+        # Convert timestamp to ISO format for better browser compatibility
+        msg_dict['timestamp'] = convert_to_iso_timestamp(msg_dict['timestamp'])
+        messages_list.append(msg_dict)
+    
+    messages_list = sorted(messages_list, key=lambda x: x['priority_order'], reverse=True)
+    conn.close()
+    
+    return jsonify({'messages': messages_list})
+
+@app.route('/admin/export/csv')
+@admin_required
+def export_messages_csv():
+    """Export all messages as CSV"""
+    import csv
+    from io import StringIO
+    
+    conn = get_db_connection()
+    messages = conn.execute('''
+        SELECT m.*, u.email as user_email 
+        FROM messages m
+        JOIN users u ON m.user_id = u.id
+        ORDER BY m.timestamp DESC
+    ''').fetchall()
+    conn.close()
+    
+    # Create CSV content
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # Write headers
+    writer.writerow(['ID', 'User Email', 'Content', 'AI Priority', 'Final Priority', 'Status', 'Timestamp'])
+    
+    # Write data with formula injection protection
+    for msg in messages:
+        writer.writerow([
+            sanitize_csv_field(msg['id']),
+            sanitize_csv_field(msg['user_email']),
+            sanitize_csv_field(msg['content']),
+            sanitize_csv_field(msg['predicted_priority']),
+            sanitize_csv_field(msg['final_priority'] or ''),
+            sanitize_csv_field(msg['status']),
+            sanitize_csv_field(msg['timestamp'])
+        ])
+    
+    output.seek(0)
+    
+    # Create response with CSV content
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv'
+    response.headers['Content-Disposition'] = f'attachment; filename=messages_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    
+    return response
 
 @app.route('/admin/update_message/<int:message_id>', methods=['POST'])
 @admin_required

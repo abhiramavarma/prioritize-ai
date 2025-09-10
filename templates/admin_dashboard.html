@@ -5,12 +5,27 @@
 {% block content %}
 <div class="row">
     <div class="col-md-12">
-        <h2><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h2>
-        <p class="text-muted">Messages are automatically sorted by priority. High priority messages appear first.</p>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h2>
+                <p class="text-muted">Messages are automatically sorted by priority. High priority messages appear first.</p>
+            </div>
+            <div>
+                <div class="form-check form-switch me-3 d-inline-block">
+                    <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
+                    <label class="form-check-label" for="autoRefresh">
+                        <i class="fas fa-sync-alt"></i> Auto-refresh
+                    </label>
+                </div>
+                <a href="{{ url_for('export_messages_csv') }}" class="btn btn-outline-success btn-sm">
+                    <i class="fas fa-download"></i> Export CSV
+                </a>
+            </div>
+        </div>
 
         {% if messages %}
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover" id="messagesTable">
                     <thead class="table-dark">
                         <tr>
                             <th>Priority</th>
@@ -21,9 +36,9 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="messagesTableBody">
                         {% for message in messages %}
-                        <tr class="priority-{{ message.final_priority or message.predicted_priority }}">
+                        <tr class="priority-{{ message.final_priority or message.predicted_priority }}" data-message-id="{{ message.id }}">
                             <td>
                                 <span class="badge bg-{{ 'danger' if (message.final_priority or message.predicted_priority) == 'high' else 'warning' if (message.final_priority or message.predicted_priority) == 'medium' else 'success' }}">
                                     {% if message.final_priority and message.final_priority != message.predicted_priority %}
@@ -69,6 +84,7 @@
                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
                                     <form method="POST" action="{{ url_for('update_message', message_id=message.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <div class="modal-body">
                                             <div class="mb-3">
                                                 <label class="form-label">Status</label>
@@ -163,4 +179,375 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let autoRefreshEnabled = true;
+let refreshInterval;
+
+function formatTimestamp(timestamp) {
+    return new Date(timestamp).toLocaleString();
+}
+
+function getPriorityBadgeClass(priority) {
+    switch(priority) {
+        case 'high': return 'bg-danger';
+        case 'medium': return 'bg-warning';
+        case 'low': return 'bg-success';
+        default: return 'bg-secondary';
+    }
+}
+
+function getStatusBadgeClass(status) {
+    switch(status) {
+        case 'pending': return 'bg-secondary';
+        case 'in-progress': return 'bg-primary';
+        case 'resolved': return 'bg-success';
+        default: return 'bg-secondary';
+    }
+}
+
+function updateMessagesTable(messages) {
+    const tbody = document.getElementById('messagesTableBody');
+    if (!tbody) return;
+    
+    const existingRows = tbody.querySelectorAll('tr');
+    const messageMap = new Map(messages.map(msg => [msg.id, msg]));
+    
+    // Update existing rows and track which message IDs we've seen
+    const processedIds = new Set();
+    existingRows.forEach(row => {
+        const messageId = parseInt(row.dataset.messageId);
+        if (messageMap.has(messageId)) {
+            const message = messageMap.get(messageId);
+            updateRowContent(row, message);
+            processedIds.add(messageId);
+        } else {
+            // Message was deleted, remove the row
+            row.remove();
+        }
+    });
+    
+    // Add new messages that weren't in the existing table
+    messages.forEach(message => {
+        if (!processedIds.has(message.id)) {
+            addNewMessageRow(tbody, message);
+        }
+    });
+    
+    // Re-sort the table by priority
+    sortTableByPriority(tbody);
+}
+
+function updateRowContent(row, message) {
+    const priority = message.final_priority || message.predicted_priority;
+    const priorityClass = getPriorityBadgeClass(priority);
+    const statusClass = getStatusBadgeClass(message.status);
+    
+    // Update row class
+    row.className = `priority-${priority}`;
+    
+    // Update each cell
+    const cells = row.querySelectorAll('td');
+    if (cells.length >= 6) {
+        // Priority cell
+        cells[0].innerHTML = `
+            <span class="badge ${priorityClass}">
+                ${message.final_priority && message.final_priority !== message.predicted_priority ? 
+                    '<i class="fas fa-user-cog" title="Admin Override"></i>' : 
+                    '<i class="fas fa-robot" title="AI Predicted"></i>'
+                }
+                ${priority.charAt(0).toUpperCase() + priority.slice(1)}
+            </span>
+        `;
+        
+        // User email cell
+        cells[1].textContent = message.user_email;
+        
+        // Content cell
+        cells[2].innerHTML = `
+            <div style="max-width: 300px;">
+                ${message.content.length > 100 ? message.content.substring(0, 100) + '...' : message.content}
+            </div>
+        `;
+        
+        // Status cell
+        cells[3].innerHTML = `
+            <span class="badge ${statusClass}">
+                ${message.status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            </span>
+        `;
+        
+        // Timestamp cell
+        cells[4].innerHTML = `<small>${formatTimestamp(message.timestamp)}</small>`;
+        
+        // Actions cell (buttons remain the same, just verify they exist)
+        if (!cells[5].querySelector('button')) {
+            cells[5].innerHTML = `
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#updateModal${message.id}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#viewModal${message.id}">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            `;
+        }
+    }
+}
+
+function addNewMessageRow(tbody, message) {
+    const priority = message.final_priority || message.predicted_priority;
+    const priorityClass = getPriorityBadgeClass(priority);
+    const statusClass = getStatusBadgeClass(message.status);
+    
+    const row = document.createElement('tr');
+    row.className = `priority-${priority}`;
+    row.dataset.messageId = message.id;
+    row.innerHTML = `
+        <td>
+            <span class="badge ${priorityClass}">
+                ${message.final_priority && message.final_priority !== message.predicted_priority ? 
+                    '<i class="fas fa-user-cog" title="Admin Override"></i>' : 
+                    '<i class="fas fa-robot" title="AI Predicted"></i>'
+                }
+                ${priority.charAt(0).toUpperCase() + priority.slice(1)}
+            </span>
+        </td>
+        <td>${message.user_email}</td>
+        <td>
+            <div style="max-width: 300px;">
+                ${message.content.length > 100 ? message.content.substring(0, 100) + '...' : message.content}
+            </div>
+        </td>
+        <td>
+            <span class="badge ${statusClass}">
+                ${message.status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            </span>
+        </td>
+        <td>
+            <small>${formatTimestamp(message.timestamp)}</small>
+        </td>
+        <td>
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#updateModal${message.id}">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-outline-info btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#viewModal${message.id}">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+        </td>
+    `;
+    tbody.appendChild(row);
+    
+    // Create modals for the new message if they don't exist
+    createModalsForMessage(message);
+}
+
+function createModalsForMessage(message) {
+    const priority = message.final_priority || message.predicted_priority;
+    const priorityClass = getPriorityBadgeClass(priority);
+    const statusClass = getStatusBadgeClass(message.status);
+    
+    // Check if modals already exist
+    if (document.getElementById(`updateModal${message.id}`) || document.getElementById(`viewModal${message.id}`)) {
+        return; // Modals already exist
+    }
+    
+    // Get CSRF token from existing form or meta tag
+    let csrfToken = '';
+    const existingCsrfInput = document.querySelector('input[name="csrf_token"]');
+    if (existingCsrfInput) {
+        csrfToken = existingCsrfInput.value;
+    } else {
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta) {
+            csrfToken = csrfMeta.getAttribute('content');
+        }
+    }
+    
+    // Create Update Modal
+    const updateModal = document.createElement('div');
+    updateModal.className = 'modal fade';
+    updateModal.id = `updateModal${message.id}`;
+    updateModal.setAttribute('tabindex', '-1');
+    updateModal.innerHTML = `
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Message</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="/admin/update_message/${message.id}">
+                    <input type="hidden" name="csrf_token" value="${csrfToken}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" name="status">
+                                <option value="pending" ${message.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                <option value="in-progress" ${message.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
+                                <option value="resolved" ${message.status === 'resolved' ? 'selected' : ''}>Resolved</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Priority Override</label>
+                            <select class="form-select" name="priority">
+                                <option value="">Keep AI Prediction (${message.predicted_priority.charAt(0).toUpperCase() + message.predicted_priority.slice(1)})</option>
+                                <option value="low" ${message.final_priority === 'low' ? 'selected' : ''}>Low</option>
+                                <option value="medium" ${message.final_priority === 'medium' ? 'selected' : ''}>Medium</option>
+                                <option value="high" ${message.final_priority === 'high' ? 'selected' : ''}>High</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    // Create View Modal
+    const viewModal = document.createElement('div');
+    viewModal.className = 'modal fade';
+    viewModal.id = `viewModal${message.id}`;
+    viewModal.setAttribute('tabindex', '-1');
+    viewModal.innerHTML = `
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Message Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-3"><strong>From:</strong></div>
+                        <div class="col-sm-9">${message.user_email}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3"><strong>Submitted:</strong></div>
+                        <div class="col-sm-9">${formatTimestamp(message.timestamp)}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-3"><strong>AI Priority:</strong></div>
+                        <div class="col-sm-9">
+                            <span class="badge ${getPriorityBadgeClass(message.predicted_priority)}">
+                                ${message.predicted_priority.charAt(0).toUpperCase() + message.predicted_priority.slice(1)}
+                            </span>
+                        </div>
+                    </div>
+                    ${message.final_priority ? `
+                    <div class="row mb-3">
+                        <div class="col-sm-3"><strong>Final Priority:</strong></div>
+                        <div class="col-sm-9">
+                            <span class="badge ${getPriorityBadgeClass(message.final_priority)}">
+                                ${message.final_priority.charAt(0).toUpperCase() + message.final_priority.slice(1)} (Admin Override)
+                            </span>
+                        </div>
+                    </div>
+                    ` : ''}
+                    <div class="row mb-3">
+                        <div class="col-sm-3"><strong>Status:</strong></div>
+                        <div class="col-sm-9">
+                            <span class="badge ${statusClass}">
+                                ${message.status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-3"><strong>Message:</strong></div>
+                        <div class="col-sm-9">
+                            <p class="bg-light p-3 rounded">${message.content}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Append modals to document body
+    document.body.appendChild(updateModal);
+    document.body.appendChild(viewModal);
+}
+
+function sortTableByPriority(tbody) {
+    const priorityOrder = {'high': 3, 'medium': 2, 'low': 1};
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    rows.sort((a, b) => {
+        const priorityA = a.className.match(/priority-(\w+)/)?.[1] || 'medium';
+        const priorityB = b.className.match(/priority-(\w+)/)?.[1] || 'medium';
+        return (priorityOrder[priorityB] || 2) - (priorityOrder[priorityA] || 2);
+    });
+    
+    // Re-append rows in sorted order
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+// Backwards compatibility - keep the old function name but use the new logic
+function renderMessagesTable(messages) {
+    updateMessagesTable(messages);
+}
+
+function refreshDashboard() {
+    if (!autoRefreshEnabled) return;
+    
+    fetch('/api/admin/messages')
+        .then(response => response.json())
+        .then(data => {
+            renderMessagesTable(data.messages);
+            console.log('Dashboard refreshed at', new Date().toLocaleTimeString());
+        })
+        .catch(error => {
+            console.error('Error refreshing dashboard:', error);
+        });
+}
+
+// Initialize auto-refresh
+document.addEventListener('DOMContentLoaded', function() {
+    const autoRefreshToggle = document.getElementById('autoRefresh');
+    
+    if (autoRefreshToggle) {
+        autoRefreshToggle.addEventListener('change', function() {
+            autoRefreshEnabled = this.checked;
+            
+            if (autoRefreshEnabled) {
+                refreshInterval = setInterval(refreshDashboard, 5000); // Refresh every 5 seconds
+                console.log('Auto-refresh enabled');
+            } else {
+                clearInterval(refreshInterval);
+                console.log('Auto-refresh disabled');
+            }
+        });
+        
+        // Start auto-refresh if enabled
+        if (autoRefreshToggle.checked) {
+            refreshInterval = setInterval(refreshDashboard, 5000);
+        }
+    }
+    
+    // Initial render with server-side data
+    {% if messages %}
+    const initialMessages = [
+        {% for message in messages %}
+        {
+            id: {{ message.id }},
+            user_email: "{{ message.user_email }}",
+            content: {{ message.content | tojson }},
+            predicted_priority: "{{ message.predicted_priority }}",
+            final_priority: {{ message.final_priority | tojson }},
+            status: "{{ message.status }}",
+            timestamp: "{{ message.timestamp }}",
+            effective_priority: "{{ message.final_priority or message.predicted_priority }}"
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+    renderMessagesTable(initialMessages);
+    {% endif %}
+});
+</script>
 {% endblock %}

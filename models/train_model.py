@@ -60,7 +60,9 @@ def create_sample_data():
         ("Suggestion for extended library hours", "low")
     ]
     
-    df = pd.DataFrame(sample_messages, columns=['message', 'priority'])
+    # Convert to DataFrame with explicit column specification
+    df = pd.DataFrame(sample_messages)
+    df.columns = ['message', 'priority']
     return df
 
 def train_model():
