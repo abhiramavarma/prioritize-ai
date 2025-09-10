@@ -4,9 +4,9 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf.csrf import CSRFProtect
-import joblib
-import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
+import json
+from google import genai
+from google.genai import types
 import re
 
 app = Flask(__name__)
@@ -58,24 +58,8 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Load ML model
-def load_model():
-    try:
-        # Try models directory first, then root directory
-        try:
-            return joblib.load('models/priority_model.pkl')
-        except FileNotFoundError:
-            return joblib.load('priority_model.pkl')
-    except Exception as e:
-        print(f"Warning: Could not load ML model: {e}")
-        return None
-
-# Text preprocessing
-def preprocess_text(text):
-    text = text.lower()
-    text = re.sub(r'[^a-zA-Z\s]', '', text)
-    text = re.sub(r'\s+', ' ', text).strip()
-    return text
+# Initialize Gemini client
+gemini_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 # CSV sanitization to prevent formula injection
 def sanitize_csv_field(field):
@@ -103,19 +87,63 @@ def convert_to_iso_timestamp(sqlite_timestamp):
         # Fallback to original if parsing fails
         return sqlite_timestamp
 
-# Predict priority using ML model
+# Predict priority using Gemini API
 def predict_priority(content):
-    model_data = load_model()
-    if not model_data:
-        return 'medium'  # Default priority
-    
-    model = model_data['model']
-    vectorizer = model_data['vectorizer']
-    
-    processed_text = preprocess_text(content)
-    text_vector = vectorizer.transform([processed_text])
-    priority = model.predict(text_vector)[0]
-    return priority
+    try:
+        system_prompt = """You are an intelligent priority classification system for educational institutions (schools, colleges, universities). Analyze the given message and classify it as exactly one of these priorities:
+
+HIGH PRIORITY: Critical issues requiring immediate attention
+- Server outages, system crashes, database failures
+- Security breaches, data corruption, payment system failures  
+- Emergency situations, safety issues, evacuation needs
+- Network outages affecting multiple users
+- Critical deadline-related system failures
+- Urgent help requests with words like "emergency", "urgent", "critical", "broken", "down"
+
+MEDIUM PRIORITY: Important issues needing timely response
+- Equipment malfunctions (printers, projectors, computers)
+- Slow performance, login issues for some users
+- Registration problems, minor system glitches
+- Classroom technology issues, software bugs
+- Infrastructure problems (AC, lighting, minor repairs)
+- Help requests for ongoing work or assignments
+
+LOW PRIORITY: General requests and non-urgent matters
+- Software installation requests, password help
+- General questions, suggestions, feedback
+- Non-urgent maintenance requests
+- Information requests, training inquiries
+- Comfort improvements, facility suggestions
+
+Respond with ONLY one word: "high", "medium", or "low" - nothing else."""
+
+        response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                types.Content(role="user", parts=[types.Part(text=f"Message to classify: {content}")])
+            ],
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=0.1,  # Low temperature for consistent classification
+            ),
+        )
+
+        if response.text:
+            priority = response.text.strip().lower()
+            # Validate the response is one of our expected priorities
+            if priority in ['high', 'medium', 'low']:
+                print(f"Gemini classified message as: {priority}")
+                return priority
+            else:
+                print(f"Unexpected Gemini response: {response.text}")
+                return 'medium'  # Default fallback
+        else:
+            print("Empty response from Gemini")
+            return 'medium'
+
+    except Exception as e:
+        print(f"Error calling Gemini API: {e}")
+        return 'medium'  # Fallback to medium priority on error
 
 # Database helper functions
 def get_db_connection():

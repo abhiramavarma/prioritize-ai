@@ -16,16 +16,16 @@ Preferred communication style: Simple, everyday language.
 - **SQLite database** for data persistence, chosen for simplicity and Replit compatibility
 - **Werkzeug security** for password hashing and user authentication
 
-### Machine Learning Pipeline
-- **Scikit-learn** for ML model training and inference
-- **TF-IDF vectorization** for text feature extraction from message content
-- **Logistic regression** classifier for priority prediction (high/medium/low)
-- **Model persistence** using joblib for saving/loading trained models
-- **Text preprocessing** with regex-based cleaning and normalization
+### AI-Powered Priority Classification
+- **Google Gemini API** (gemini-2.5-flash model) for intelligent priority detection
+- **Advanced natural language understanding** for accurate message classification
+- **Context-aware priority rules** tailored for educational institution scenarios
+- **Real-time API-based classification** replacing local ML models
+- **Sophisticated prompt engineering** for consistent high/medium/low categorization
 
 ### Database Schema
 - **Users table**: Stores user credentials and roles (id, email, password_hash, role)
-- **Messages table**: Stores messages with ML predictions and admin overrides (id, user_id, content, predicted_priority, final_priority, status, timestamp)
+- **Messages table**: Stores messages with AI predictions and admin overrides (id, user_id, content, predicted_priority, final_priority, status, timestamp)
 - **Foreign key relationships** linking messages to users
 
 ### Frontend Architecture
@@ -49,11 +49,12 @@ Preferred communication style: Simple, everyday language.
 5. **Status updates**: Admins update message status through workflow states
 6. **User tracking**: Users can view their messages and status updates
 
-### Training Data & Model
-- **Sample dataset creation** with realistic educational institution scenarios
-- **Balanced training data** across priority levels with domain-specific examples
-- **Text preprocessing pipeline** for consistent feature extraction
-- **Model evaluation** using classification reports for performance monitoring
+### Advanced Features
+- **Auto-refresh dashboard** with real-time message updates every 5 seconds
+- **CSV export functionality** with formula injection protection
+- **Visual alert markers** for high-priority messages with pulsing animations
+- **Dynamic modal management** preserving edit/view functionality during auto-refresh
+- **CSRF protection** on all forms for enhanced security
 
 ## External Dependencies
 
@@ -62,10 +63,9 @@ Preferred communication style: Simple, everyday language.
 - **SQLite3**: Embedded database for data storage (built into Python)
 - **Werkzeug**: Security utilities for password hashing
 
-### Machine Learning Stack
-- **scikit-learn**: ML library for training and inference
-- **pandas**: Data manipulation for training data handling
-- **joblib**: Model serialization and persistence
+### AI Integration
+- **Google Gemini API**: Advanced language model for priority classification
+- **google-genai**: Official Google AI Python SDK for API integration
 
 ### Frontend Libraries
 - **Bootstrap 5**: CSS framework for responsive design (CDN)
@@ -78,4 +78,5 @@ Preferred communication style: Simple, everyday language.
 
 ### Environment Configuration
 - **SECRET_KEY**: Flask session security (environment variable)
-- **ADMIN_EMAIL/ADMIN_PASSWORD**: Default admin account creation (environment variables)
+- **GEMINI_API_KEY**: Google AI API key for priority classification (environment variable)
+- **Default Admin Credentials**: admin@example.com / admin
