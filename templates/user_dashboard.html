@@ -3,60 +3,170 @@
 {% block title %}My Messages - PrioritizeAI{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="fas fa-envelope"></i> My Messages</h2>
-            <a href="{{ url_for('submit_message') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Submit New Message
-            </a>
-        </div>
-
-        {% if messages %}
-            <div class="row">
-                {% for message in messages %}
-                <div class="col-md-6 mb-3">
-                    <div class="card priority-{{ message.final_priority or message.predicted_priority }} status-{{ message.status }}">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="badge bg-{{ 'danger' if (message.final_priority or message.predicted_priority) == 'high' else 'warning' if (message.final_priority or message.predicted_priority) == 'medium' else 'success' }}">
-                                    {{ (message.final_priority or message.predicted_priority).title() }} Priority
-                                </span>
-                                <span class="badge bg-{{ 'secondary' if message.status == 'pending' else 'primary' if message.status == 'in-progress' else 'success' }}">
-                                    {{ message.status.replace('-', ' ').title() }}
-                                </span>
+<!-- Dashboard Header -->
+<div class="row mb-5 animate-fade-in">
+    <div class="col-12">
+        <div class="card glass-strong border-0">
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="glass rounded-circle p-3 me-3" style="background: var(--primary-gradient);">
+                                <i class="fas fa-envelope text-white" style="font-size: 1.5rem;"></i>
                             </div>
-                            
-                            <p class="card-text">{{ message.content }}</p>
-                            
-                            <small class="text-muted">
-                                <i class="fas fa-clock"></i> 
-                                Submitted: {{ message.timestamp }}
+                            <div>
+                                <h1 class="h3 mb-1 text-dark fw-bold">My Messages</h1>
+                                <p class="text-muted mb-0">Track your submitted messages and their priority status</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <a href="{{ url_for('submit_message') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-paper-plane me-2"></i>Submit New Message
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+    <!-- Messages Grid -->
+    <div class="row g-4">
+        {% for message in messages %}
+        <div class="col-lg-6 col-xl-4 animate-fade-in animate-delay-{{ loop.index % 3 + 1 }}">
+            <div class="card priority-{{ message.final_priority or message.predicted_priority }} h-100" style="border: none; position: relative; overflow: hidden;">
+                <!-- Priority Indicator -->
+                <div class="position-absolute top-0 end-0 m-3">
+                    <div class="d-flex flex-column align-items-end gap-2">
+                        <span class="badge bg-{{ 'danger' if (message.final_priority or message.predicted_priority) == 'high' else 'warning' if (message.final_priority or message.predicted_priority) == 'medium' else 'success' }} fs-6 px-3 py-2">
+                            <i class="fas fa-{{ 'exclamation-triangle' if (message.final_priority or message.predicted_priority) == 'high' else 'clock' if (message.final_priority or message.predicted_priority) == 'medium' else 'check-circle' }} me-2"></i>
+                            {{ (message.final_priority or message.predicted_priority).title() }}
+                        </span>
+                        <span class="badge bg-{{ 'secondary' if message.status == 'pending' else 'primary' if message.status == 'in-progress' else 'success' }} px-3 py-2">
+                            <i class="fas fa-{{ 'hourglass-half' if message.status == 'pending' else 'cog fa-spin' if message.status == 'in-progress' else 'check' }} me-2"></i>
+                            {{ message.status.replace('-', ' ').title() }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="card-body p-4" style="padding-top: 5rem !important;">
+                    <!-- Message Content -->
+                    <div class="mb-4">
+                        <p class="card-text fs-5 text-dark mb-0" style="line-height: 1.6;">{{ message.content }}</p>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div class="mt-auto">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <small class="text-muted d-flex align-items-center">
+                                <i class="fas fa-clock me-2"></i>
+                                {{ message.timestamp }}
                             </small>
                             
                             {% if message.final_priority and message.final_priority != message.predicted_priority %}
-                            <div class="mt-2">
-                                <small class="text-info">
-                                    <i class="fas fa-user-cog"></i> 
-                                    Priority updated by admin
-                                </small>
-                            </div>
+                            <small class="text-info d-flex align-items-center">
+                                <i class="fas fa-user-cog me-2"></i>
+                                Admin Override
+                            </small>
+                            {% else %}
+                            <small class="text-success d-flex align-items-center">
+                                <i class="fas fa-robot me-2"></i>
+                                AI Classified
+                            </small>
                             {% endif %}
                         </div>
                     </div>
                 </div>
-                {% endfor %}
             </div>
-        {% else %}
-            <div class="text-center py-5">
-                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                <h4>No messages yet</h4>
-                <p class="text-muted">Submit your first message to get started!</p>
-                <a href="{{ url_for('submit_message') }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Submit Message
-                </a>
-            </div>
-        {% endif %}
+        </div>
+        {% endfor %}
     </div>
-</div>
+    
+    <!-- Stats Summary -->
+    <div class="row mt-5 animate-fade-in animate-delay-3">
+        <div class="col-12">
+            <div class="card glass border-0">
+                <div class="card-body p-4">
+                    <h5 class="text-white mb-3 fw-semibold">
+                        <i class="fas fa-chart-bar me-2"></i>Message Summary
+                    </h5>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="text-center glass-strong rounded p-3">
+                                <div class="h4 mb-1 text-white fw-bold">{{ messages|length }}</div>
+                                <small class="text-white opacity-75">Total Messages</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center glass-strong rounded p-3">
+                                <div class="h4 mb-1 text-danger fw-bold">{{ messages|selectattr('final_priority', 'equalto', 'high')|list|length + messages|selectattr('predicted_priority', 'equalto', 'high')|list|length }}</div>
+                                <small class="text-white opacity-75">High Priority</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center glass-strong rounded p-3">
+                                <div class="h4 mb-1 text-warning fw-bold">{{ messages|selectattr('status', 'equalto', 'in-progress')|list|length }}</div>
+                                <small class="text-white opacity-75">In Progress</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center glass-strong rounded p-3">
+                                <div class="h4 mb-1 text-success fw-bold">{{ messages|selectattr('status', 'equalto', 'resolved')|list|length }}</div>
+                                <small class="text-white opacity-75">Resolved</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <!-- Empty State -->
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="text-center animate-fade-in">
+                <div class="mb-4">
+                    <div class="glass rounded-circle mx-auto d-flex align-items-center justify-content-center" 
+                         style="width: 120px; height: 120px; background: var(--primary-gradient);">
+                        <i class="fas fa-paper-plane text-white" style="font-size: 3rem;"></i>
+                    </div>
+                </div>
+                <h3 class="text-white mb-3 fw-bold">Ready to get started?</h3>
+                <p class="text-white opacity-75 mb-4 fs-5">
+                    Submit your first message and let our AI-powered system automatically prioritize it for faster resolution.
+                </p>
+                <a href="{{ url_for('submit_message') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-rocket me-2"></i>Submit Your First Message
+                </a>
+                
+                <!-- Feature Highlights -->
+                <div class="row mt-5">
+                    <div class="col-4">
+                        <div class="glass rounded p-3">
+                            <i class="fas fa-brain text-primary mb-2" style="font-size: 2rem;"></i>
+                            <h6 class="text-white fw-semibold">Smart Prioritization</h6>
+                            <small class="text-white opacity-75">AI analyzes your message content</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="glass rounded p-3">
+                            <i class="fas fa-tachometer-alt text-success mb-2" style="font-size: 2rem;"></i>
+                            <h6 class="text-white fw-semibold">Real-time Updates</h6>
+                            <small class="text-white opacity-75">Track progress instantly</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="glass rounded p-3">
+                            <i class="fas fa-shield-alt text-info mb-2" style="font-size: 2rem;"></i>
+                            <h6 class="text-white fw-semibold">Secure & Private</h6>
+                            <small class="text-white opacity-75">Your data is protected</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
 {% endblock %}

@@ -3,67 +3,125 @@
 {% block title %}Submit Message - PrioritizeAI{% endblock %}
 
 {% block content %}
+<!-- Header Section -->
+<div class="row mb-5 animate-fade-in">
+    <div class="col-12">
+        <div class="text-center">
+            <div class="glass rounded-circle mx-auto mb-4 d-flex align-items-center justify-content-center" 
+                 style="width: 100px; height: 100px; background: var(--success-gradient);">
+                <i class="fas fa-paper-plane text-white" style="font-size: 2.5rem;"></i>
+            </div>
+            <h1 class="h2 text-white fw-bold mb-3">Submit New Message</h1>
+            <p class="text-white opacity-75 fs-5 mb-0">
+                Our AI will instantly analyze and prioritize your message for faster resolution
+            </p>
+        </div>
+    </div>
+</div>
+
 <div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-body">
-                <h2 class="card-title">
-                    <i class="fas fa-paper-plane"></i> Submit New Message
-                </h2>
-                
-                <form method="POST">
+    <div class="col-lg-8 col-xl-7">
+        <!-- Main Form Card -->
+        <div class="card glass-strong animate-fade-in animate-delay-1" style="border: none;">
+            <div class="card-body p-5">
+                <form method="POST" class="position-relative">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="mb-3">
-                        <label for="content" class="form-label">
-                            Message Content
+                    
+                    <div class="mb-4">
+                        <label for="content" class="form-label text-dark fw-bold fs-5 mb-3">
+                            <i class="fas fa-edit me-3 text-primary"></i>Describe your message
                         </label>
                         <textarea 
-                            class="form-control" 
+                            class="form-control form-control-lg" 
                             id="content" 
                             name="content" 
-                            rows="6" 
-                            placeholder="Describe your issue, request, or feedback..."
+                            rows="8" 
+                            placeholder="Describe your issue, request, or feedback in detail. Be specific about what's happening and any urgency..."
                             required
+                            style="background: rgba(255, 255, 255, 0.9); border: 2px solid rgba(255, 255, 255, 0.3); resize: vertical; font-size: 1.1rem; line-height: 1.6;"
                         ></textarea>
-                        <div class="form-text">
-                            The system will automatically prioritize your message based on its content.
+                        <div class="form-text d-flex align-items-center mt-3">
+                            <div class="glass rounded p-2 me-3">
+                                <i class="fas fa-brain text-primary"></i>
+                            </div>
+                            <div class="text-muted">
+                                <strong>AI-Powered:</strong> Our system will automatically analyze your message and assign the appropriate priority level based on urgency and content.
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="d-flex justify-content-between">
-                        <a href="{{ url_for('user_dashboard') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Back to Dashboard
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-paper-plane"></i> Submit Message
-                        </button>
+                    <div class="row">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <a href="{{ url_for('user_dashboard') }}" class="btn btn-outline-secondary btn-lg w-100">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="submit" class="btn btn-primary btn-lg w-100" id="submitBtn">
+                                <span class="submit-text">
+                                    <i class="fas fa-rocket me-2"></i>Submit Message
+                                </span>
+                                <span class="submit-loading d-none">
+                                    <i class="fas fa-spinner fa-spin me-2"></i>Processing...
+                                </span>
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
         </div>
         
-        <div class="card mt-4">
-            <div class="card-body">
-                <h5 class="card-title">
-                    <i class="fas fa-info-circle"></i> How Priority Works
-                </h5>
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="text-center">
-                            <span class="badge bg-danger fs-6 mb-2">High Priority</span>
-                            <p class="small">Critical issues requiring immediate attention</p>
+        <!-- AI Priority Guide -->
+        <div class="card glass mt-5 animate-fade-in animate-delay-2" style="border: 2px solid rgba(102, 126, 234, 0.3);">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <h5 class="text-white fw-bold mb-2">
+                        <i class="fas fa-brain text-primary me-2"></i>How AI Prioritization Works
+                    </h5>
+                    <p class="text-white opacity-75 mb-0">Our intelligent system analyzes your message content to determine priority</p>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-lg-4">
+                        <div class="glass-strong rounded p-4 text-center h-100">
+                            <div class="mb-3">
+                                <div class="glass rounded-circle mx-auto d-flex align-items-center justify-content-center" 
+                                     style="width: 60px; height: 60px; background: var(--danger-gradient);">
+                                    <i class="fas fa-exclamation-triangle text-white fs-4"></i>
+                                </div>
+                            </div>
+                            <span class="badge bg-danger fs-6 mb-2 px-3 py-2">High Priority</span>
+                            <p class="text-white small mb-0 opacity-75">
+                                System outages, security issues, emergencies, critical failures
+                            </p>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="text-center">
-                            <span class="badge bg-warning fs-6 mb-2">Medium Priority</span>
-                            <p class="small">Important issues that need timely response</p>
+                    <div class="col-lg-4">
+                        <div class="glass-strong rounded p-4 text-center h-100">
+                            <div class="mb-3">
+                                <div class="glass rounded-circle mx-auto d-flex align-items-center justify-content-center" 
+                                     style="width: 60px; height: 60px; background: var(--warning-gradient);">
+                                    <i class="fas fa-clock text-white fs-4"></i>
+                                </div>
+                            </div>
+                            <span class="badge bg-warning fs-6 mb-2 px-3 py-2">Medium Priority</span>
+                            <p class="text-white small mb-0 opacity-75">
+                                Equipment issues, performance problems, login difficulties
+                            </p>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="text-center">
-                            <span class="badge bg-success fs-6 mb-2">Low Priority</span>
-                            <p class="small">General requests and suggestions</p>
+                    <div class="col-lg-4">
+                        <div class="glass-strong rounded p-4 text-center h-100">
+                            <div class="mb-3">
+                                <div class="glass rounded-circle mx-auto d-flex align-items-center justify-content-center" 
+                                     style="width: 60px; height: 60px; background: var(--success-gradient);">
+                                    <i class="fas fa-check-circle text-white fs-4"></i>
+                                </div>
+                            </div>
+                            <span class="badge bg-success fs-6 mb-2 px-3 py-2">Low Priority</span>
+                            <p class="text-white small mb-0 opacity-75">
+                                General questions, suggestions, information requests
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -71,4 +129,20 @@
         </div>
     </div>
 </div>
+
+<script>
+// Add loading state to form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = submitBtn.querySelector('.submit-text');
+    const submitLoading = submitBtn.querySelector('.submit-loading');
+    
+    form.addEventListener('submit', function() {
+        submitBtn.disabled = true;
+        submitText.classList.add('d-none');
+        submitLoading.classList.remove('d-none');
+    });
+});
+</script>
 {% endblock %}

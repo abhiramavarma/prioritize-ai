@@ -3,77 +3,111 @@
 {% block title %}Admin Dashboard - PrioritizeAI{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-                <h2><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h2>
-                <p class="text-muted">Messages are automatically sorted by priority. High priority messages appear first.</p>
-            </div>
-            <div>
-                <div class="form-check form-switch me-3 d-inline-block">
-                    <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
-                    <label class="form-check-label" for="autoRefresh">
-                        <i class="fas fa-sync-alt"></i> Auto-refresh
-                    </label>
+<!-- Dashboard Header -->
+<div class="row mb-5 animate-fade-in">
+    <div class="col-12">
+        <div class="card glass-strong border-0">
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-lg-6">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="glass rounded-circle p-3 me-3" style="background: var(--primary-gradient);">
+                                <i class="fas fa-crown text-white" style="font-size: 1.8rem;"></i>
+                            </div>
+                            <div>
+                                <h1 class="h3 mb-1 text-dark fw-bold">Admin Control Center</h1>
+                                <p class="text-muted mb-0">Messages are automatically sorted by priority. AI analyzes and prioritizes all submissions.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 text-lg-end">
+                        <div class="d-flex justify-content-lg-end align-items-center gap-3 flex-wrap">
+                            <!-- Auto-refresh toggle -->
+                            <div class="form-check form-switch glass rounded px-3 py-2">
+                                <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
+                                <label class="form-check-label text-white fw-semibold" for="autoRefresh">
+                                    <i class="fas fa-sync-alt me-2" style="color: #4facfe;"></i>Auto-refresh
+                                </label>
+                            </div>
+                            
+                            <!-- Export button -->
+                            <a href="{{ url_for('export_messages_csv') }}" class="btn btn-success btn-lg">
+                                <i class="fas fa-download me-2"></i>Export Data
+                            </a>
+                        </div>
+                    </div>
                 </div>
-                <a href="{{ url_for('export_messages_csv') }}" class="btn btn-outline-success btn-sm">
-                    <i class="fas fa-download"></i> Export CSV
-                </a>
             </div>
         </div>
+    </div>
+</div>
 
         {% if messages %}
-            <div class="table-responsive">
-                <table class="table table-hover" id="messagesTable">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Priority</th>
-                            <th>User</th>
-                            <th>Message</th>
-                            <th>Status</th>
-                            <th>Submitted</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="messagesTableBody">
-                        {% for message in messages %}
-                        <tr class="priority-{{ message.final_priority or message.predicted_priority }}" data-message-id="{{ message.id }}">
-                            <td>
-                                <span class="badge bg-{{ 'danger' if (message.final_priority or message.predicted_priority) == 'high' else 'warning' if (message.final_priority or message.predicted_priority) == 'medium' else 'success' }}">
-                                    {% if message.final_priority and message.final_priority != message.predicted_priority %}
-                                        <i class="fas fa-user-cog" title="Admin Override"></i>
-                                    {% else %}
-                                        <i class="fas fa-robot" title="AI Predicted"></i>
-                                    {% endif %}
-                                    {{ (message.final_priority or message.predicted_priority).title() }}
-                                </span>
-                            </td>
-                            <td>{{ message.user_email }}</td>
-                            <td>
-                                <div style="max-width: 300px;">
-                                    {{ message.content[:100] }}{% if message.content|length > 100 %}...{% endif %}
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge bg-{{ 'secondary' if message.status == 'pending' else 'primary' if message.status == 'in-progress' else 'success' }}">
-                                    {{ message.status.replace('-', ' ').title() }}
-                                </span>
-                            </td>
-                            <td>
-                                <small>{{ message.timestamp }}</small>
-                            </td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#updateModal{{ message.id }}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-outline-info btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#viewModal{{ message.id }}">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
+            <!-- Messages Table -->
+            <div class="animate-fade-in animate-delay-1">
+                <div class="table-responsive" style="border-radius: var(--border-radius-lg); overflow: hidden;">
+                    <table class="table table-hover mb-0" id="messagesTable">
+                        <thead>
+                            <tr>
+                                <th class="fw-bold text-uppercase" style="letter-spacing: 1px;">Priority</th>
+                                <th class="fw-bold text-uppercase" style="letter-spacing: 1px;">User</th>
+                                <th class="fw-bold text-uppercase" style="letter-spacing: 1px;">Message</th>
+                                <th class="fw-bold text-uppercase" style="letter-spacing: 1px;">Status</th>
+                                <th class="fw-bold text-uppercase" style="letter-spacing: 1px;">Submitted</th>
+                                <th class="fw-bold text-uppercase" style="letter-spacing: 1px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="messagesTableBody">
+                            {% for message in messages %}
+                            <tr class="priority-{{ message.final_priority or message.predicted_priority }}" data-message-id="{{ message.id }}" style="transition: var(--transition-smooth);">
+                                <td class="align-middle">
+                                    <span class="badge bg-{{ 'danger' if (message.final_priority or message.predicted_priority) == 'high' else 'warning' if (message.final_priority or message.predicted_priority) == 'medium' else 'success' }} fs-6 px-3 py-2">
+                                        {% if message.final_priority and message.final_priority != message.predicted_priority %}
+                                            <i class="fas fa-user-cog me-2" title="Admin Override"></i>
+                                        {% else %}
+                                            <i class="fas fa-robot me-2" title="AI Predicted"></i>
+                                        {% endif %}
+                                        {{ (message.final_priority or message.predicted_priority).title() }}
+                                    </span>
+                                </td>
+                                <td class="align-middle">
+                                    <div class="d-flex align-items-center">
+                                        <div class="glass rounded-circle p-2 me-2">
+                                            <i class="fas fa-user text-primary"></i>
+                                        </div>
+                                        <span class="fw-semibold">{{ message.user_email }}</span>
+                                    </div>
+                                </td>
+                                <td class="align-middle">
+                                    <div style="max-width: 400px;">
+                                        <p class="mb-0 text-dark" style="line-height: 1.5;">
+                                            {{ message.content[:150] }}{% if message.content|length > 150 %}...{% endif %}
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="align-middle">
+                                    <span class="badge bg-{{ 'secondary' if message.status == 'pending' else 'primary' if message.status == 'in-progress' else 'success' }} fs-6 px-3 py-2">
+                                        <i class="fas fa-{{ 'hourglass-half' if message.status == 'pending' else 'cog fa-spin' if message.status == 'in-progress' else 'check' }} me-2"></i>
+                                        {{ message.status.replace('-', ' ').title() }}
+                                    </span>
+                                </td>
+                                <td class="align-middle">
+                                    <small class="text-muted d-flex align-items-center">
+                                        <i class="fas fa-clock me-2"></i>
+                                        {{ message.timestamp }}
+                                    </small>
+                                </td>
+                                <td class="align-middle">
+                                    <div class="btn-group">
+                                        <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#updateModal{{ message.id }}" title="Update Message">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-info btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#viewModal{{ message.id }}" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
 
                         <!-- Update Modal -->
                         <div class="modal fade" id="updateModal{{ message.id }}" tabindex="-1">
@@ -171,10 +205,47 @@
                 </table>
             </div>
         {% else %}
-            <div class="text-center py-5">
-                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                <h4>No messages yet</h4>
-                <p class="text-muted">Messages will appear here when users submit them.</p>
+            <!-- Empty State -->
+            <div class="row justify-content-center animate-fade-in animate-delay-1">
+                <div class="col-lg-6">
+                    <div class="text-center">
+                        <div class="mb-4">
+                            <div class="glass rounded-circle mx-auto d-flex align-items-center justify-content-center" 
+                                 style="width: 120px; height: 120px; background: var(--primary-gradient);">
+                                <i class="fas fa-inbox text-white" style="font-size: 3rem;"></i>
+                            </div>
+                        </div>
+                        <h3 class="text-white mb-3 fw-bold">No Messages Yet</h3>
+                        <p class="text-white opacity-75 mb-4 fs-5">
+                            Messages will appear here when users start submitting them. The AI will automatically prioritize each submission.
+                        </p>
+                        
+                        <!-- System Status Cards -->
+                        <div class="row mt-5">
+                            <div class="col-4">
+                                <div class="glass rounded p-3">
+                                    <i class="fas fa-robot text-primary mb-2" style="font-size: 2rem;"></i>
+                                    <h6 class="text-white fw-semibold">AI Ready</h6>
+                                    <small class="text-white opacity-75">Gemini API active</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="glass rounded p-3">
+                                    <i class="fas fa-sync-alt text-success mb-2" style="font-size: 2rem;"></i>
+                                    <h6 class="text-white fw-semibold">Auto-refresh</h6>
+                                    <small class="text-white opacity-75">Real-time updates</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="glass rounded p-3">
+                                    <i class="fas fa-shield-alt text-info mb-2" style="font-size: 2rem;"></i>
+                                    <h6 class="text-white fw-semibold">Secure</h6>
+                                    <small class="text-white opacity-75">CSRF protected</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         {% endif %}
     </div>
