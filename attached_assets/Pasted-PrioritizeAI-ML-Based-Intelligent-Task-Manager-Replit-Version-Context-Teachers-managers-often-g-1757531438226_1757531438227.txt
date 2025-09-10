@@ -1,0 +1,102 @@
+PrioritizeAI – ML-Based Intelligent Task Manager (Replit Version)
+Context
+
+Teachers/managers often get multiple problem reports/messages at once. Using FIFO to process them is inefficient and risky, since urgent issues may be missed. This project solves that by using ML to auto-prioritize messages and by giving admins control to adjust/update priorities.
+
+Core Features
+
+Authentication (Minimal)
+
+Email + password login.
+
+Two roles:
+
+User → can submit messages and check their status.
+
+Admin → can view prioritized messages, override priority, and update status.
+
+Message Flow
+
+User submits a message.
+
+System applies an ML model to predict priority.
+
+Message is saved in a database.
+
+Admin dashboard shows all messages ranked by predicted priority.
+
+Admin can override/update status (pending → in-progress → resolved).
+
+User can track updates to their messages.
+
+Machine Learning
+
+Use scikit-learn for training.
+
+Dataset: labeled messages (low/medium/high priority).
+
+NLP preprocessing: TF-IDF vectorization + text cleaning.
+
+Save trained model as model.pkl and load in Flask.
+
+Database (Replit-friendly)
+
+Use SQLite instead of MySQL.
+
+Tables:
+
+users → id, email, password_hash, role
+
+messages → id, user_id, content, predicted_priority, final_priority, status, timestamp
+
+Frontend
+
+Flask templates with HTML + Bootstrap (Replit can host Flask with template rendering).
+
+User pages: login, register, submit message, track status.
+
+Admin pages: login, dashboard (prioritized list + controls), charts for summary.
+
+Additional Features (Nice-to-have)
+
+Auto-refresh dashboard (JS polling every few seconds).
+
+Email-style alert marker for urgent/high-priority messages.
+
+Export all messages as CSV.
+
+Tech Stack for Replit
+
+Backend: Python + Flask
+
+ML: scikit-learn (Logistic Regression / Random Forest)
+
+Database: SQLite (via sqlite3 Python module)
+
+Frontend: Flask templates + Bootstrap
+
+Auth: Werkzeug password hashing
+
+Deployment: Runs directly on Replit (no external DB setup)
+
+Expected AI Output
+
+Full project skeleton with:
+
+app.py → Flask routes
+
+models/train_model.py → ML training code
+
+templates/ → HTML for user/admin
+
+static/ → CSS/JS files
+
+database.db → SQLite database file
+
+Schema setup code for SQLite.
+
+Sample dataset for ML training.
+
+Clear setup instructions (pip install, how to run Flask app on Replit).
+
+Well-commented code for easy learning.
