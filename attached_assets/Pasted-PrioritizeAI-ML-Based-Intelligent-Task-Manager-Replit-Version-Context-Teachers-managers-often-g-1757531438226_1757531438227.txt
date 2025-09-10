@@ -1,4 +1,4 @@
-PrioritizeAI – ML-Based Intelligent Task Manager (Replit Version)
+PrioritizeAI – ML-Based Intelligent Task Manager
 Context
 
 Teachers/managers often get multiple problem reports/messages at once. Using FIFO to process them is inefficient and risky, since urgent issues may be missed. This project solves that by using ML to auto-prioritize messages and by giving admins control to adjust/update priorities.
@@ -39,7 +39,7 @@ NLP preprocessing: TF-IDF vectorization + text cleaning.
 
 Save trained model as model.pkl and load in Flask.
 
-Database (Replit-friendly)
+Database
 
 Use SQLite instead of MySQL.
 
@@ -51,7 +51,7 @@ messages → id, user_id, content, predicted_priority, final_priority, status, t
 
 Frontend
 
-Flask templates with HTML + Bootstrap (Replit can host Flask with template rendering).
+Flask templates with HTML + Bootstrap.
 
 User pages: login, register, submit message, track status.
 
@@ -65,7 +65,7 @@ Email-style alert marker for urgent/high-priority messages.
 
 Export all messages as CSV.
 
-Tech Stack for Replit
+Tech Stack
 
 Backend: Python + Flask
 
@@ -77,9 +77,9 @@ Frontend: Flask templates + Bootstrap
 
 Auth: Werkzeug password hashing
 
-Deployment: Runs directly on Replit (no external DB setup)
+Deployment: Runs directly (no external DB setup)
 
-Expected AI Output
+Expected Output
 
 Full project skeleton with:
 
@@ -97,6 +97,6 @@ Schema setup code for SQLite.
 
 Sample dataset for ML training.
 
-Clear setup instructions (pip install, how to run Flask app on Replit).
+Clear setup instructions (pip install, how to run Flask app).
 
 Well-commented code for easy learning.

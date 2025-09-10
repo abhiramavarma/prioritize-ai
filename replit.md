@@ -4,16 +4,13 @@
 
 PrioritizeAI is an intelligent task management system that uses machine learning to automatically prioritize messages and requests. The system is designed for educational institutions where teachers and managers receive multiple problem reports and need efficient prioritization to handle urgent issues first. The application uses natural language processing to analyze message content and predict priority levels (high, medium, low), replacing inefficient FIFO processing with intelligent ML-based prioritization.
 
-## User Preferences
-
-Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
 ### Web Framework & Backend
 - **Flask-based web application** with session-based authentication
 - **Role-based access control** with two user types: regular users (submit messages) and admins (manage and prioritize messages)
-- **SQLite database** for data persistence, chosen for simplicity and Replit compatibility
+- **SQLite database** for data persistence, chosen for simplicity
 - **Werkzeug security** for password hashing and user authentication
 
 ### AI-Powered Priority Classification
